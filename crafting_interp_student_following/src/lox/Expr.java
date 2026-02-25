@@ -1,6 +1,5 @@
-// Version 3 after adding Factory 
-
 package lox;
+// version 2, created by GenerateAst.java
 
 import java.util.List;
 
