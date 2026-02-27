@@ -8,15 +8,18 @@ package lox;
 import java.util.List;
 
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
-    //    takes in a syntax tree for an expression and evaluates it
-    //    yes, evaluate() returns an object for the result value and
-    //    interpret() converts that to a string and shows it to the user
+    // takes in a syntax tree for an expression and evaluates it
+    // yes, evaluate() returns an object for the result value and
+    // interpret() converts that to a string and shows it to the user
 
     // Challenge problem 8.2
     private static final Object uninitialized = new Object();
 
-    //    an instance of the new Environment class
+    // an instance of the new Environment class
     private Environment environment = new Environment();
+
+    // Challenge problem 9.3
+    private static class BreakException extends RuntimeException {}
 
     void interpret(List<Stmt> statements) {
         try {
@@ -28,8 +31,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
     }
 
-    //    we converted a literal token into a literal syntax tree node in the parser
-    //    now we convert the literal tree node into a runtime value
+    // we converted a literal token into a literal syntax tree node in the parser
+    // now we convert the literal tree node into a runtime value
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.value;
@@ -48,7 +51,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return evaluate(expr.right);
     }
 
-    //    evaluate the operand expression, then apply the unary operator to the result
+    // evaluate the operand expression, then apply the unary operator to the result
     @Override
     public Object visitUnaryExpr(Expr.Unary expr) {
         Object right = evaluate(expr.right);
@@ -57,22 +60,16 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             case BANG:
                 return !isTruthy(right);
             case MINUS:
-                //    Lox-specific cast failure so that we can handle it how we want
+                // Lox-specific cast failure so that we can handle it how we want
                 checkNumberOperand(expr.operator, right);
                 return -(double)right;
         }
 
-        //    Unreachable.
+        // Unreachable.
         return null;
     }
 
-    //    evaluate a variable expression
-    @Override
-    public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
-    }
-
-    // Continue challenge problem 8.2
+    // evaluate a variable expression
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
         Object value = environment.get(expr.name);
@@ -85,13 +82,13 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return value;
     }
 
-    //    to check the operand
+    // to check the operand
     private void checkNumberOperand(Token operator, Object operand) {
         if (operand instanceof Double) return;
         throw new RuntimeError(operator, "Operand must be a number.");
     }
 
-    //    helper for visitBinaryExpr(Expr.Binary expr)
+    // helper for visitBinaryExpr(Expr.Binary expr)
     private void checkNumberOperands(Token operator,
                                      Object left, Object right) {
         if (left instanceof Double && right instanceof Double) return;
@@ -99,7 +96,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         throw new RuntimeError(operator, "Operands must be numbers.");
     }
 
-    //    false and nil are falsey, and everything else is truthy
+    // false and nil are falsey, and everything else is truthy
     private boolean isTruthy(Object object) {
         if (object == null) return false;
         if (object instanceof Boolean) return (boolean)object;
@@ -113,7 +110,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return a.equals(b);
     }
 
-    //    convert a Lox value to a string
+    // convert a Lox value to a string
     private String stringify(Object object) {
         if (object == null) return "nil";
 
@@ -128,24 +125,24 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return object.toString();
     }
 
-    //    grouping node has a reference to an inner node for the expression inside the parentheses
-    //    to evaluate the grouping expression itself, recursively evaluate the subexpression and return it
+    // grouping node has a reference to an inner node for the expression inside the parentheses
+    // to evaluate the grouping expression itself, recursively evaluate the subexpression and return it
     @Override
     public Object visitGroupingExpr(Expr.Grouping expr) {
         return evaluate(expr.expression);
     }
 
-    //    helper method that sends the expression back into the interpreter’s visitor implementation
+    // helper method that sends the expression back into the interpreter’s visitor implementation
     private Object evaluate(Expr expr) {
         return expr.accept(this);
     }
 
-    //    helper for void interpret(List<Stmt> statements) on Line 23
+    // helper for void interpret(List<Stmt> statements)
     private void execute(Stmt stmt) {
         stmt.accept(this);
     }
 
-    //    executes a list of statements in the context of a given environment
+    // executes a list of statements in the context of a given environment
     void executeBlock(List<Stmt> statements,
                       Environment environment) {
         Environment previous = this.environment;
@@ -160,16 +157,16 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         }
     }
 
-    //    to execute a block, we create a new environment for the block’s scope
-    //    and pass it to executeBlock() above
+    // to execute a block, we create a new environment for the block’s scope
+    // and pass it to executeBlock() above
     @Override
     public Void visitBlockStmt(Stmt.Block stmt) {
         executeBlock(stmt.statements, new Environment(environment));
         return null;
     }
 
-    //    statements produce no values, so the return type of the visit methods is Void
-    //    evaluate the inner expression using our existing evaluate() method and discard the value
+    // statements produce no values, so the return type of the visit methods is Void
+    // evaluate the inner expression using our existing evaluate() method and discard the value
     @Override
     public Void visitExpressionStmt(Stmt.Expression stmt) {
         evaluate(stmt.expression);
@@ -186,8 +183,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
-    //    before discarding the expression’s value, convert it to a string
-    //    using stringify() and then dump it to stdout
+    // before discarding the expression’s value, convert it to a string
+    // using stringify() and then dump it to stdout
     @Override
     public Void visitPrintStmt(Stmt.Print stmt) {
         Object value = evaluate(stmt.expression);
@@ -195,19 +192,7 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
-    // //    syntax tree for declaration statements
-    // @Override
-    // public Void visitVarStmt(Stmt.Var stmt) {
-    //     Object value = null;
-    //     if (stmt.initializer != null) {
-    //         value = evaluate(stmt.initializer);
-    //     }
-
-    //     environment.define(stmt.name.lexeme, value);
-    //     return null;
-    // }
-
-    // Updated version of visitVarStmt() {
+    // Updated visitVarStmt() with uninitialized support
     @Override
     public Void visitVarStmt(Stmt.Var stmt) {
         Object value = uninitialized;
@@ -220,17 +205,32 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         return null;
     }
 
+    // Continue challenge 9.3 
     @Override
     public Void visitWhileStmt(Stmt.While stmt) {
-        while (isTruthy(evaluate(stmt.condition))) {
-            execute(stmt.body);
+        try {
+            while (isTruthy(evaluate(stmt.condition))) {
+                try {
+                    execute(stmt.body);
+                } catch (BreakException ex) {
+                    // exit the loop
+                    break;
+                }
+            }
+        } catch (RuntimeError error) {
+            throw error;
         }
         return null;
     }
 
-    //    new syntax tree node, so interpreter gets a new visit method
-    //    evaluates the right-hand side to get the value,
-    //    then stores it in the named variable and called assign() in Environment.java
+    // Continue challenge 9.3 
+    @Override
+    public Void visitBreakStmt(Stmt.Break stmt) {
+        throw new BreakException();
+    }
+
+    // evaluates the right-hand side to get the value,
+    // then stores it in the named variable using Environment.assign()
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
@@ -244,8 +244,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object right = evaluate(expr.right);
 
         switch (expr.operator.type) {
-            //    comparison operators always produce a Boolean
-            //    comparison operators require numbers
+            // comparison operators always produce a Boolean
+            // comparison operators require numbers
             case GREATER:
                 checkNumberOperands(expr.operator, left, right);
                 return (double)left > (double)right;
@@ -258,20 +258,18 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             case LESS_EQUAL:
                 checkNumberOperands(expr.operator, left, right);
                 return (double)left <= (double)right;
-            //    arithmetic operators produce a value whose type is the same as the operands
+            // arithmetic operators produce a value whose type is the same as the operands
             case MINUS:
                 checkNumberOperands(expr.operator, left, right);
                 return (double)left - (double)right;
-            //    the + operator can also be used to concatenate two strings
+            // the + operator can also be used to concatenate two strings
             case PLUS:
                 if (left instanceof Double && right instanceof Double) {
                     return (double)left + (double)right;
                 }
-
                 if (left instanceof String && right instanceof String) {
                     return (String)left + (String)right;
                 }
-                //    fail if neither of the two success cases match
                 throw new RuntimeError(expr.operator,
                         "Operands must be two numbers or two strings.");
             case SLASH:
@@ -280,12 +278,12 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
             case STAR:
                 checkNumberOperands(expr.operator, left, right);
                 return (double)left * (double)right;
-            //    equality operators support operands of any type, even mixed ones
+            // equality operators support operands of any type, even mixed ones
             case BANG_EQUAL: return !isEqual(left, right);
             case EQUAL_EQUAL: return isEqual(left, right);
         }
 
-        //    Unreachable.
+        // Unreachable.
         return null;
     }
 }
