@@ -5,23 +5,44 @@ package lox;
 
 // post-order traversal—each node evaluates its children before doing its own work
 
-class Interpreter implements Expr.Visitor<Object> {
+import java.util.List;
+
+class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     //    takes in a syntax tree for an expression and evaluates it
     //    yes, evaluate() returns an object for the result value and
     //    interpret() converts that to a string and shows it to the user
-    void interpret(Expr expression) {
+
+    //    an instance of the new Environment class
+    private Environment environment = new Environment();
+
+    void interpret(List<Stmt> statements) {
         try {
-            Object value = evaluate(expression);
-            System.out.println(stringify(value));
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
         } catch (RuntimeError error) {
             Lox.runtimeError(error);
         }
     }
+
     //    we converted a literal token into a literal syntax tree node in the parser
     //    now we convert the literal tree node into a runtime value
     @Override
     public Object visitLiteralExpr(Expr.Literal expr) {
         return expr.value;
+    }
+
+    @Override
+    public Object visitLogicalExpr(Expr.Logical expr) {
+        Object left = evaluate(expr.left);
+
+        if (expr.operator.type == TokenType.OR) {
+            if (isTruthy(left)) return left;
+        } else {
+            if (!isTruthy(left)) return left;
+        }
+
+        return evaluate(expr.right);
     }
 
     //    evaluate the operand expression, then apply the unary operator to the result
@@ -40,6 +61,12 @@ class Interpreter implements Expr.Visitor<Object> {
 
         //    Unreachable.
         return null;
+    }
+
+    //    evaluate a variable expression
+    @Override
+    public Object visitVariableExpr(Expr.Variable expr) {
+        return environment.get(expr.name);
     }
 
     //    to check the operand
@@ -95,6 +122,91 @@ class Interpreter implements Expr.Visitor<Object> {
     //    helper method that sends the expression back into the interpreter’s visitor implementation
     private Object evaluate(Expr expr) {
         return expr.accept(this);
+    }
+
+    //    helper for void interpret(List<Stmt> statements) on Line 23
+    private void execute(Stmt stmt) {
+        stmt.accept(this);
+    }
+
+    //    executes a list of statements in the context of a given environment
+    void executeBlock(List<Stmt> statements,
+                      Environment environment) {
+        Environment previous = this.environment;
+        try {
+            this.environment = environment;
+
+            for (Stmt statement : statements) {
+                execute(statement);
+            }
+        } finally {
+            this.environment = previous;
+        }
+    }
+
+    //    to execute a block, we create a new environment for the block’s scope
+    //    and pass it to executeBlock() above
+    @Override
+    public Void visitBlockStmt(Stmt.Block stmt) {
+        executeBlock(stmt.statements, new Environment(environment));
+        return null;
+    }
+
+    //    statements produce no values, so the return type of the visit methods is Void
+    //    evaluate the inner expression using our existing evaluate() method and discard the value
+    @Override
+    public Void visitExpressionStmt(Stmt.Expression stmt) {
+        evaluate(stmt.expression);
+        return null;
+    }
+
+    @Override
+    public Void visitIfStmt(Stmt.If stmt) {
+        if (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.thenBranch);
+        } else if (stmt.elseBranch != null) {
+            execute(stmt.elseBranch);
+        }
+        return null;
+    }
+
+    //    before discarding the expression’s value, convert it to a string
+    //    using stringify() and then dump it to stdout
+    @Override
+    public Void visitPrintStmt(Stmt.Print stmt) {
+        Object value = evaluate(stmt.expression);
+        System.out.println(stringify(value));
+        return null;
+    }
+
+    //    syntax tree for declaration statements
+    @Override
+    public Void visitVarStmt(Stmt.Var stmt) {
+        Object value = null;
+        if (stmt.initializer != null) {
+            value = evaluate(stmt.initializer);
+        }
+
+        environment.define(stmt.name.lexeme, value);
+        return null;
+    }
+
+    @Override
+    public Void visitWhileStmt(Stmt.While stmt) {
+        while (isTruthy(evaluate(stmt.condition))) {
+            execute(stmt.body);
+        }
+        return null;
+    }
+
+    //    new syntax tree node, so interpreter gets a new visit method
+    //    evaluates the right-hand side to get the value,
+    //    then stores it in the named variable and called assign() in Environment.java
+    @Override
+    public Object visitAssignExpr(Expr.Assign expr) {
+        Object value = evaluate(expr.value);
+        environment.assign(expr.name, value);
+        return value;
     }
 
     @Override

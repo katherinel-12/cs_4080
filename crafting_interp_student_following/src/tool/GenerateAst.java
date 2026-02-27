@@ -6,7 +6,7 @@ import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.List;
 
-// this script generates a file named “Expr.java”
+// this script generates a file named “Expr.java” and "Stmt.java"
 
 public class GenerateAst {
     public static void main(String[] args) throws IOException {
@@ -19,10 +19,23 @@ public class GenerateAst {
         //    to generate the classes, have some description of each type and its fields
         //    name of the class followed by : and the list of fields, separated by commas
         defineAst(outputDir, "Expr", Arrays.asList(
+                "Assign   : Token name, Expr value",
                 "Binary   : Expr left, Token operator, Expr right",
                 "Grouping : Expr expression",
                 "Literal  : Object value",
-                "Unary    : Token operator, Expr right"
+                "Logical  : Expr left, Token operator, Expr right",
+                "Unary    : Token operator, Expr right",
+                "Variable : Token name"
+        ));
+
+        //    another call to define Stmt and its subclasses
+        defineAst(outputDir, "Stmt", Arrays.asList(
+                "Block      : List<Stmt> statements",
+                "Expression : Expr expression",
+                "If         : Expr condition, Stmt thenBranch," + " Stmt elseBranch",
+                "Print      : Expr expression",
+                "Var        : Token name, Expr initializer",
+                "While      : Expr condition, Stmt body"
         ));
     }
 
