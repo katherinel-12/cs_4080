@@ -6,11 +6,13 @@ package lox;
 // post-order traversal—each node evaluates its children before doing its own work
 
 import java.util.List;
+import java.util.Map;
 
 import lox.Stmt.If;
 import lox.Stmt.Return;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     //    takes in a syntax tree for an expression and evaluates it
@@ -19,6 +21,8 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
     final Environment globals = new Environment();
     private Environment environment = globals;
+
+    private final Map<Expr, Integer> locals = new HashMap<>();
 
     //    defines a variable named “clock” that implements LoxCallable
     //    the clock() function takes no arguments, so its arity is zero
@@ -91,7 +95,21 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     //    evaluate a variable expression
     @Override
     public Object visitVariableExpr(Expr.Variable expr) {
-        return environment.get(expr.name);
+        //    access to each variable’s resolved location
+        return lookUpVariable(expr.name, expr);
+    }
+
+    //    look up the resolved distance in the map (resolved only local variables) 
+    //    if we don’t find a distance in the map, it must be global
+    //    in that case, dynamically look it up, directly in the global environment 
+    //    that throws a runtime error if the variable isn’t defined 
+    private Object lookUpVariable(Token name, Expr expr) {
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+        return environment.getAt(distance, name.lexeme);
+        } else {
+        return globals.get(name);
+        }
     }
 
     //    to check the operand
@@ -152,6 +170,10 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     //    helper for void interpret(List<Stmt> statements) on Line 23
     private void execute(Stmt stmt) {
         stmt.accept(this);
+    }
+
+    void resolve(Expr expr, int depth) {
+        locals.put(expr, depth);
     }
 
     //    executes a list of statements in the context of a given environment
@@ -251,7 +273,15 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     @Override
     public Object visitAssignExpr(Expr.Assign expr) {
         Object value = evaluate(expr.value);
-        environment.assign(expr.name, value);
+        
+        //    use a variable by assigning to it
+        Integer distance = locals.get(expr);
+        if (distance != null) {
+            environment.assignAt(distance, expr.name, value);
+        } else {
+            globals.assign(expr.name, value);
+        }
+
         return value;
     }
 

@@ -66,7 +66,14 @@ public class Lox {
         Parser parser = new Parser(tokens);
         List<Stmt> statements = parser.parse();
 
-        //    Stop if there was a syntax error.
+        //    stop if there was a syntax error.
+        if (hadError) return;
+
+        //    don’t run the resolver if there are any parse errors
+        Resolver resolver = new Resolver(interpreter);
+        resolver.resolve(statements);
+
+        //    stop if there was a resolution error.
         if (hadError) return;
 
         interpreter.interpret(statements);

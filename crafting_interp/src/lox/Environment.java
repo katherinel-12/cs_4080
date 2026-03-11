@@ -27,6 +27,25 @@ class Environment {
         values.put(name, value);
     }
 
+    Environment ancestor(int distance) {
+        Environment environment = this;
+        for (int i = 0; i < distance; i++) {
+        environment = environment.enclosing; 
+        }
+
+        return environment;
+    }
+
+    //    both getAt() and assignAt()
+    //    walks a fixed number of environments, then stuffs the new value in that map
+    Object getAt(int distance, String name) {
+        return ancestor(distance).values.get(name);
+    }
+
+    void assignAt(int distance, Token name, Object value) {
+        ancestor(distance).values.put(name.lexeme, value);
+    }
+
     //    once a variable exists, we need a way to look it up
     Object get(Token name) {
         if (values.containsKey(name.lexeme)) {
