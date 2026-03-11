@@ -7,13 +7,38 @@ package lox;
 
 import java.util.List;
 
+import lox.Stmt.If;
+import lox.Stmt.Return;
+
+import java.util.ArrayList;
+
 class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     //    takes in a syntax tree for an expression and evaluates it
     //    yes, evaluate() returns an object for the result value and
     //    interpret() converts that to a string and shows it to the user
 
-    //    an instance of the new Environment class
-    private Environment environment = new Environment();
+    final Environment globals = new Environment();
+    private Environment environment = globals;
+
+    //    defines a variable named “clock” that implements LoxCallable
+    //    the clock() function takes no arguments, so its arity is zero
+    Interpreter() {
+        globals.define("clock", new LoxCallable() {
+            @Override
+            public int arity() { return 0; }
+
+            //    call() calls the corresponding Java function 
+            //    and converts the result to a double value in second
+            @Override
+            public Object call(Interpreter interpreter,
+                                List<Object> arguments) {
+                return (double)System.currentTimeMillis() / 1000.0;
+            }
+
+            @Override
+            public String toString() { return "<native fn>"; }
+        });
+    }
 
     void interpret(List<Stmt> statements) {
         try {
@@ -161,6 +186,18 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
     }
 
     @Override
+    //    take a function syntax node (compile-time representation of the function) 
+    //    and convert it to its runtime representation
+    public Void visitFunctionStmt(Stmt.Function stmt) {
+        //    creating the LoxFunction, 
+        //    create a new binding (of resulting object to a new variable) in the current environment 
+        //    store a reference to it there in the current environment
+        LoxFunction function = new LoxFunction(stmt, environment);
+        environment.define(stmt.name.lexeme, function);
+        return null;
+    }
+
+    @Override
     public Void visitIfStmt(Stmt.If stmt) {
         if (isTruthy(evaluate(stmt.condition))) {
             execute(stmt.thenBranch);
@@ -177,6 +214,15 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
         Object value = evaluate(stmt.expression);
         System.out.println(stringify(value));
         return null;
+    }
+
+    //    If we have a return value, evaluate it, otherwise, use nil
+    @Override
+    public Void visitReturnStmt(Stmt.Return stmt) {
+        Object value = null;
+        if (stmt.value != null) value = evaluate(stmt.value);
+
+        throw new Return(value);
     }
 
     //    syntax tree for declaration statements
@@ -258,5 +304,33 @@ class Interpreter implements Expr.Visitor<Object>, Stmt.Visitor<Void> {
 
         //    Unreachable.
         return null;
+    }
+
+    //    new visit method for our new call expression node
+    @Override
+    public Object visitCallExpr(Expr.Call expr) {
+        Object callee = evaluate(expr.callee);
+
+        List<Object> arguments = new ArrayList<>();
+        for (Expr argument : expr.arguments) { 
+        arguments.add(evaluate(argument));
+        }
+
+        //    check the type to make sure we aren't doing something like: "totally not a function"();
+        if (!(callee instanceof LoxCallable)) {
+            //    throwing our own exception type, the interpreter knows to catch and report gracefully
+            throw new RuntimeError(expr.paren,
+                "Can only call functions and classes.");
+        }
+
+        LoxCallable function = (LoxCallable)callee;
+        
+        //    raises a runtime error if the argument list is too short or too long
+        if (arguments.size() != function.arity()) {
+            throw new RuntimeError(expr.paren, "Expected " +
+                function.arity() + " arguments but got " +
+                arguments.size() + ".");
+        }
+        return function.call(this, arguments);
     }
 }
