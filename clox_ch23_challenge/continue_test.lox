@@ -1,0 +1,18 @@
+for (var i = 0; i < 5; i = i + 1) {
+    // 1. Test: Skip code using continue
+    if (i == 2) {
+        print "Found 2, skipping...";
+        continue; 
+    }
+
+    // 2. Test: Local variable stack cleanup
+    {
+        var localInScope = "I should be popped!";
+        if (i == 4) {
+            print "Found 4, skipping with local on stack...";
+            continue; 
+        }
+    }
+}
+
+print "Loop finished!";

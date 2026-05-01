@@ -1,0 +1,23 @@
+// constructor
+fun Vector(xval, yval) {
+  fun instance(method) {
+    if (method == "xval") return xval;
+    if (method == "yval") return yval;
+  }
+  return instance;
+}
+
+// addition function/method
+fun addVectors(vect1, vect2) {
+  var newX = vect1("xval") + vect2("xval");
+  var newY = vect1("yval") + vect2("yval");
+  return Vector(newX, newY);
+}
+
+var firstVect = Vector(3, 4);
+var secondVect = Vector(1, 2);
+
+var thirdVect = addVectors(firstVect, secondVect);
+
+print thirdVect("xval");
+print thirdVect("yval");

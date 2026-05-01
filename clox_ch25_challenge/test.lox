@@ -1,0 +1,17 @@
+var f1;
+var f2;
+var f3;
+
+for (var i = 0; i < 3; i = i + 1) {
+  fun closure() {
+    print i;
+  }
+
+  if (i == 0) f1 = closure;
+  if (i == 1) f2 = closure;
+  if (i == 2) f3 = closure;
+}
+
+f1();
+f2();
+f3();

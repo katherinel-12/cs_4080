@@ -1,0 +1,13 @@
+fun fib(n) { if (n < 2) return n; return fib(n - 2) + fib(n - 1); }
+
+var start = clock();
+print fib(35);
+print "time: "; 
+print clock() - start;
+
+print "";
+print "Native test: "; 
+var start = clock();
+for (var i = 0; i < 1000000; i = i + 1) { clock(); }
+print "time: ";
+print clock() - start;
