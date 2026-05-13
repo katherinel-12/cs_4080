@@ -1,0 +1,16 @@
+// benchmark_init.lox
+class Point {
+  init(x, y) {
+    this.x = x;
+    this.y = y;
+  }
+}
+
+var start = clock();
+
+for (var i = 0; i < 1000; i = i + 1) {
+  Point(i, i); 
+}
+
+print "Elapsed time:";
+print clock() - start;

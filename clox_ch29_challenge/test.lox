@@ -1,0 +1,4 @@
+class Toast {}
+var breakfast = Toast();
+
+print breakfast.butter; 

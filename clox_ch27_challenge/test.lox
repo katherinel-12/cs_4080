@@ -1,0 +1,11 @@
+class Toast {}
+var breakfast = Toast();
+
+if (hasField(breakfast, "jam")) {
+    print breakfast.jam;
+} else {
+    print "No jam today.";
+}
+
+// This will now give a clean runtime error instead of an abort:
+print breakfast.butter;

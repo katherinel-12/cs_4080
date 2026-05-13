@@ -1,0 +1,36 @@
+// Chapter 28: Methods and Initializers Test
+class CoffeeMaker {
+  init(recipe) {
+    this.recipe = recipe;
+    this.isReady = false;
+  }
+
+  brew() {
+    print "Brewing " + this.recipe + "...";
+    this.isReady = true;
+  }
+
+  serve() {
+    if (this.isReady) {
+      print "Enjoy your " + this.recipe + "!";
+    } else {
+      print "Wait, the coffee isn't brewed yet.";
+    }
+  }
+}
+
+var maker = CoffeeMaker("Dark Roast");
+
+// Test property access and methods
+maker.serve(); // Expect: Wait, the coffee isn't brewed yet.
+maker.brew();  // Expect: Brewing Dark Roast...
+maker.serve(); // Expect: Enjoy your Dark Roast!
+
+// Test method binding (closures with 'this')
+var serveLate = maker.serve;
+serveLate();   // Expect: Enjoy your Dark Roast!
+
+// Test multiple instances
+var teaMaker = CoffeeMaker("Earl Grey");
+teaMaker.brew(); // Expect: Brewing Earl Grey...
+teaMaker.serve(); // Expect: Enjoy your Earl Grey!

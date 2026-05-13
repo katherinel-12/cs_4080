@@ -6,21 +6,28 @@
 #include "common.h"
 #include "value.h"
 #include "chunk.h"
+#include "table.h"
 
 // macro that extracts the object type tag from a given Value
 #define OBJ_TYPE(value)        (AS_OBJ(value)->type)
+#define IS_BOUND_METHOD(value) isObjType(value, OBJ_BOUND_METHOD)
+#define IS_CLASS(value)        isObjType(value, OBJ_CLASS)
 #define IS_CLOSURE(value)      isObjType(value, OBJ_CLOSURE)
 // macro for converting values to functions
 // make sure the value actually is a function
 #define IS_FUNCTION(value)     isObjType(value, OBJ_FUNCTION)
+#define IS_INSTANCE(value)     isObjType(value, OBJ_INSTANCE)
 #define IS_NATIVE(value)       isObjType(value, OBJ_NATIVE)
 // this is kind of OOP, so ObjString* can cast to Obj*
 // this macro checks that Obj* can be downcast to ObjString*
 // takes a Value for VM sake
 #define IS_STRING(value)       isObjType(value, OBJ_STRING)
+#define AS_BOUND_METHOD(value) ((ObjBoundMethod*)AS_OBJ(value))
+#define AS_CLASS(value)        ((ObjClass*)AS_OBJ(value))
 #define AS_CLOSURE(value)      ((ObjClosure*)AS_OBJ(value))
 // cast the Value to an ObjFunction pointer
 #define AS_FUNCTION(value)     ((ObjFunction*)AS_OBJ(value))
+#define AS_INSTANCE(value)     ((ObjInstance*)AS_OBJ(value))
 #define AS_NATIVE(value) \
 (((ObjNative*)AS_OBJ(value))->function)
 // macro telling us when it’s safe to cast a value to a specific object type
@@ -31,8 +38,11 @@
 #define AS_CSTRING(value)      (((ObjString*)AS_OBJ(value))->chars)
 
 typedef enum {
+    OBJ_BOUND_METHOD,
+    OBJ_CLASS,
     OBJ_CLOSURE,
     OBJ_FUNCTION,
+    OBJ_INSTANCE,
     OBJ_NATIVE,
     OBJ_STRING,
     OBJ_UPVALUE
@@ -41,6 +51,7 @@ typedef enum {
 // Obj becomes a linked list to store every Obj
 struct Obj {
     ObjType type;
+    bool isMarked;
     struct Obj* next; // avoids leaking memory
     // VM can traverse the list to find every object allocated on the heap
 };
@@ -88,10 +99,43 @@ typedef struct {
     int upvalueCount;
 } ObjClosure;
 
+typedef struct {
+    Obj obj;
+    ObjString* name;
+    Table methods;
+} ObjClass;
+
+
+typedef struct {
+    Obj obj;
+    ObjClass* klass;
+    Table fields;
+} ObjInstance;
+
+// wraps the receiver and the method closure together
+typedef struct {
+    Obj obj;
+    Value receiver;
+    ObjClosure* method;
+} ObjBoundMethod;
+
+ObjBoundMethod* newBoundMethod(Value receiver,
+                               ObjClosure* method);
+
+// the VM creates new class objects using this function
+ObjClass* newClass(ObjString* name);
+
+// Ch. 27 object-oriented programming - class objects
+// Ch. 27 will focus on classes, instances, and fields
+// out of classes, instances, fields, methods, initializers, and inheritance
 ObjClosure* newClosure(ObjFunction* function);
 
 // a C function to create a new Lox function
 ObjFunction* newFunction();
+
+// since fields are added after the instance is created,
+// the “constructor” function only needs to know the class
+ObjInstance* newInstance(ObjClass* klass);
 
 // to create an ObjNative
 ObjNative* newNative(NativeFn function);
