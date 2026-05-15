@@ -3,12 +3,55 @@
 
 // in C, HAVE to build the data structures out
 
+#include <string.h>
 #include "common.h"
 
 // a struct that contains the state shared across all object types (string, instance, etc)
 typedef struct Obj Obj;
 // strings build on top of Obj
 typedef struct ObjString ObjString;
+
+#ifdef NAN_BOXING
+
+#define SIGN_BIT ((uint64_t)0x8000000000000000)
+#define QNAN     ((uint64_t)0x7ffc000000000000)
+
+#define TAG_NIL   1 // 01.
+#define TAG_FALSE 2 // 10.
+#define TAG_TRUE  3 // 11.
+
+typedef uint64_t Value;
+
+#define IS_BOOL(value)      (((value) | 1) == TRUE_VAL)
+#define IS_NIL(value)       ((value) == NIL_VAL)
+#define IS_NUMBER(value)    (((value) & QNAN) != QNAN)
+#define IS_OBJ(value) \
+(((value) & (QNAN | SIGN_BIT)) == (QNAN | SIGN_BIT))
+#define AS_BOOL(value)      ((value) == TRUE_VAL)
+#define AS_NUMBER(value)    valueToNum(value)
+#define AS_OBJ(value) \
+((Obj*)(uintptr_t)((value) & ~(SIGN_BIT | QNAN)))
+#define BOOL_VAL(b)     ((b) ? TRUE_VAL : FALSE_VAL)
+#define FALSE_VAL       ((Value)(uint64_t)(QNAN | TAG_FALSE))
+#define TRUE_VAL        ((Value)(uint64_t)(QNAN | TAG_TRUE))
+#define NIL_VAL         ((Value)(uint64_t)(QNAN | TAG_NIL))
+#define NUMBER_VAL(num) numToValue(num)
+#define OBJ_VAL(obj) \
+(Value)(SIGN_BIT | QNAN | (uint64_t)(uintptr_t)(obj))
+
+static inline double valueToNum(Value value) {
+    double num;
+    memcpy(&num, &value, sizeof(Value));
+    return num;
+}
+
+static inline Value numToValue(double num) {
+    Value value;
+    memcpy(&value, &num, sizeof(double));
+    return value;
+}
+
+#else
 
 // how the value representation can dynamically handle different types
 // tagged union - a value contains two parts: a type “tag”, a payload for the actual value
@@ -62,6 +105,7 @@ typedef struct {
 
 // mandatory conversion step so the VM always knows what type of data it is looking at
 // by checking the tag before it tries to read the bits
+// by checking the tag before it tries to read the bits
 // ex.  double a = 5.0;
 //      Value b = NUMBER_VAL(a);  instead of  Value b = a;
 #define BOOL_VAL(value)   ((Value){VAL_BOOL, {.boolean = value}})
@@ -69,6 +113,8 @@ typedef struct {
 #define NUMBER_VAL(value) ((Value){VAL_NUMBER, {.number = value}})
 // takes a bare Obj pointer and wraps it in a full Value
 #define OBJ_VAL(object)   ((Value){VAL_OBJ, {.obj = (Obj*)object}})
+
+#endif
 
 // this struct wraps a pointer to an array
 // along with its allocated capacity and

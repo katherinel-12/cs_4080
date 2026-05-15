@@ -14,11 +14,11 @@
 // the GC runs as often as possible
 // this means it is bad for performance but
 // good for flushing out memory management bugs
-#define DEBUG_STRESS_GC
+// #define DEBUG_STRESS_GC
 
 // clox prints information to the console when
 // it does something with dynamic memory
-#define DEBUG_LOG_GC
+// #define DEBUG_LOG_GC
 
 // maximum capacity for local variables (256)
 // the VM only supports up to 256 local variables in scope at one time
